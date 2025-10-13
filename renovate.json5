@@ -7,7 +7,7 @@
   packageRules: [
     {
       matchManagers: [
-        'regex',
+        'custom.regex',
       ],
       matchPackageNames: [
         'glug',
