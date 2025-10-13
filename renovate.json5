@@ -1,0 +1,35 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+  ],
+  automerge: true,
+  packageRules: [
+    {
+      matchManagers: [
+        'regex',
+      ],
+      matchPackageNames: [
+        'glug',
+      ],
+      automerge: true,
+      commitMessagePrefix: 'chore:',
+      commitMessageAction: 'update',
+    },
+  ],
+  customManagers: [
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/Formula/glug.rb',
+      ],
+      matchStrings: [
+        'url "https://github.com/d0ugal/glug/archive/(?<currentValue>v[\\d\\.]+)\\.tar\\.gz"',
+      ],
+      depNameTemplate: 'glug',
+      datasourceTemplate: 'github-releases',
+      extractVersionTemplate: '^v(?<version>.*)$',
+      versioningTemplate: 'semver',
+    },
+  ],
+}
