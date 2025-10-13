@@ -1,0 +1,82 @@
+name: Update Glug Formula
+
+on:
+  schedule:
+    # Check for updates every day at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Glug version to update to (e.g., v1.1.0)'
+        required: false
+        type: string
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout homebrew-glug
+      uses: actions/checkout@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Get latest glug release
+      id: get_release
+      run: |
+        if [ -n "${{ inputs.version }}" ]; then
+          VERSION="${{ inputs.version }}"
+        else
+          VERSION=$(gh release list --repo d0ugal/glug --limit 1 --json tagName --jq '.[0].tagName')
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "version_no_v=${VERSION#v}" >> $GITHUB_OUTPUT
+        
+    - name: Get current formula version
+      id: current_version
+      run: |
+        CURRENT=$(grep 'url "https://github.com/d0ugal/glug/archive/' Formula/glug.rb | sed 's/.*v\([0-9.]*\)\.tar\.gz.*/\1/')
+        echo "current=$CURRENT" >> $GITHUB_OUTPUT
+        
+    - name: Check if update needed
+      id: check_update
+      run: |
+        LATEST="${{ steps.get_release.outputs.version_no_v }}"
+        CURRENT="${{ steps.current_version.outputs.current }}"
+        echo "latest=$LATEST" >> $GITHUB_OUTPUT
+        echo "current=$CURRENT" >> $GITHUB_OUTPUT
+        
+        if [ "$LATEST" != "$CURRENT" ]; then
+          echo "needs_update=true" >> $GITHUB_OUTPUT
+          echo "Update needed: $CURRENT -> $LATEST"
+        else
+          echo "needs_update=false" >> $GITHUB_OUTPUT
+          echo "No update needed: $CURRENT is latest"
+        fi
+        
+    - name: Get SHA256 hash
+      if: steps.check_update.outputs.needs_update == 'true'
+      id: get_sha256
+      run: |
+        VERSION="${{ steps.get_release.outputs.version }}"
+        SHA256=$(curl -L "https://github.com/d0ugal/glug/archive/${VERSION}.tar.gz" | shasum -a 256 | cut -d' ' -f1)
+        echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+        
+    - name: Update formula
+      if: steps.check_update.outputs.needs_update == 'true'
+      run: |
+        VERSION="${{ steps.get_release.outputs.version }}"
+        SHA256="${{ steps.get_sha256.outputs.sha256 }}"
+        
+        # Update the formula file
+        sed -i "s|url \".*\"|url \"https://github.com/d0ugal/glug/archive/${VERSION}.tar.gz\"|" Formula/glug.rb
+        sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" Formula/glug.rb
+        
+    - name: Commit and push changes
+      if: steps.check_update.outputs.needs_update == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add Formula/glug.rb
+        git commit -m "chore: update glug to ${{ steps.get_release.outputs.version }}"
+        git push
