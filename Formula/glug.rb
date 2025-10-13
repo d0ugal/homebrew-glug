@@ -1,8 +1,8 @@
 class Glug < Formula
   desc "JSON log parser and colorizer"
   homepage "https://github.com/d0ugal/glug"
-  url "https://github.com/d0ugal/glug/archive/v1.0.1.tar.gz"
-  sha256 "b417f5bc803df6b81d3ef5574f637d6cddc4d73f2a690bd2c88f613ec9fbaa59"
+  url "https://github.com/d0ugal/glug/archive/refs/tags/v1.1.0.tar.gz"
+  sha256 "a2d5b0b5076f43ac42c4cce705e9e0227642d6feaf26e1075fb1769dc2e968dc"
   license "MIT"
 
   depends_on "go" => :build
